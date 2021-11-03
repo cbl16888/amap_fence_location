@@ -133,45 +133,54 @@ class _MyAppState extends State<MyApp> {
   Container _createButtonContainer() {
     return new Container(
         alignment: Alignment.center,
-        child: new Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            new ElevatedButton(
-              onPressed: _startLocation,
-              child: new Text('开始定位'),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.blue),
-                foregroundColor: MaterialStateProperty.all(Colors.white),
-              ),
+        child: Column(
+          children: [
+            new Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                new ElevatedButton(
+                  onPressed: _startLocation,
+                  child: new Text('开始定位'),
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue),
+                    foregroundColor: MaterialStateProperty.all(Colors.white),
+                  ),
+                ),
+                new Container(width: 10.0),
+                new ElevatedButton(
+                  onPressed: _stopLocation,
+                  child: new Text('停止定位'),
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue),
+                    foregroundColor: MaterialStateProperty.all(Colors.white),
+                  ),
+                )
+              ],
             ),
-            new Container(width: 10.0),
-            new ElevatedButton(
-              onPressed: _stopLocation,
-              child: new Text('停止定位'),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.blue),
-                foregroundColor: MaterialStateProperty.all(Colors.white),
-              ),
+            new Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                new ElevatedButton(
+                  onPressed: _addFence,
+                  child: new Text('创建围栏'),
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue),
+                    foregroundColor: MaterialStateProperty.all(Colors.white),
+                  ),
+                ),
+                new Container(width: 10.0),
+                new ElevatedButton(
+                  onPressed: _removeFence,
+                  child: new Text('移除围栏'),
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue),
+                    foregroundColor: MaterialStateProperty.all(Colors.white),
+                  ),
+                )
+              ],
             ),
-            new Container(width: 10.0),
-            new ElevatedButton(
-              onPressed: _addFence,
-              child: new Text('创建围栏'),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.blue),
-                foregroundColor: MaterialStateProperty.all(Colors.white),
-              ),
-            ),
-            new Container(width: 10.0),
-            new ElevatedButton(
-              onPressed: _removeFence,
-              child: new Text('移除围栏'),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.blue),
-                foregroundColor: MaterialStateProperty.all(Colors.white),
-              ),
-            )
           ],
         ));
   }

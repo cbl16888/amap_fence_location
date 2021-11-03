@@ -1,12 +1,25 @@
 package com.amap.flutter.location;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.os.Bundle;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 
+import com.amap.api.fence.GeoFence;
+import com.amap.api.fence.GeoFenceClient;
+import com.amap.api.fence.GeoFenceListener;
+import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
+import com.amap.api.location.DPoint;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,6 +29,9 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
+
+import static com.amap.api.fence.GeoFenceClient.GEOFENCE_IN;
+import static com.amap.api.fence.GeoFenceClient.GEOFENCE_OUT;
 
 /** 高德地图定位sdkFlutterPlugin */
 public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandler,
@@ -29,6 +45,9 @@ public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandl
 
 
   private Map<String, AMapLocationClientImpl> locationClientMap = new ConcurrentHashMap<String, AMapLocationClientImpl>(8);
+  private GeoFenceClient mGeoFenceClient;
+  private static final String GEOFENCE_BROADCAST_ACTION = "com.location.apis.geofencedemo.broadcast";
+  private Result addResult;
 
   @Override
   public void onMethodCall(MethodCall call, Result result) {
@@ -48,6 +67,89 @@ public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandl
         break;
       case "destroy":
         destroy((Map) call.arguments);
+        break;
+      case "addPolygonRegionForMonitoringWithCoordinates":
+        addResult = result;
+        Map arguments = (Map)call.arguments;
+        List<String> coordinates = (List<String>)arguments.get("coordinates");
+        List<DPoint> points = new ArrayList<DPoint>();
+        for (String coordinate : coordinates) {
+          String[] location = coordinate.split(",");
+          points.add(new DPoint(Double.parseDouble(location[0]), Double.parseDouble(location[1])));
+        }
+        if (null == mGeoFenceClient) {
+          //实例化地理围栏客户端
+          mGeoFenceClient = new GeoFenceClient(mContext);
+          //设置希望侦测的围栏触发行为，默认只侦测用户进入围栏的行为
+          //public static final int GEOFENCE_IN 进入地理围栏
+          //public static final int GEOFENCE_OUT 退出地理围栏
+          //public static final int GEOFENCE_STAYED 停留在地理围栏内10分钟
+          mGeoFenceClient.setActivateAction(GEOFENCE_IN|GEOFENCE_OUT);
+          //创建回调监听
+          GeoFenceListener fenceListenter = new GeoFenceListener() {
+
+            @Override
+            public void onGeoFenceCreateFinished(List<GeoFence> list, int errorCode, String string) {
+              if (errorCode == GeoFence.ADDGEOFENCE_SUCCESS){//判断围栏是否创建成功
+//                tvReult.setText("添加围栏成功!!");
+                //geoFenceList是已经添加的围栏列表，可据此查看创建的围栏
+                if (null != addResult) {
+                  addResult.success(true);
+                  addResult = null;
+                }
+              } else {
+//                tvReult.setText("添加围栏失败!!");
+                if (null != addResult) {
+                  addResult.success(false);
+                  addResult = null;
+                }
+              }
+            }
+          };
+          mGeoFenceClient.setGeoFenceListener(fenceListenter);//设置回调监听
+          mGeoFenceClient.createPendingIntent(GEOFENCE_BROADCAST_ACTION);
+          BroadcastReceiver mGeoFenceReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+              if (intent.getAction().equals(GEOFENCE_BROADCAST_ACTION)) {
+                //解析广播内容
+                //获取Bundle
+                Bundle bundle = intent.getExtras();//获取围栏行为：
+                int status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS);//获取自定义的围栏标识：
+                String customId = bundle.getString(GeoFence.BUNDLE_KEY_CUSTOMID);//获取围栏ID:
+//                String fenceId = bundle.getString(GeoFence.BUNDLE_KEY_FENCEID);//获取当前有触发的围栏对象：
+                GeoFence fence = bundle.getParcelable(GeoFence.BUNDLE_KEY_FENCE);
+                if (null == mEventSink) {
+                  return;
+                }
+                Map<String, Object> result = new LinkedHashMap<String, Object>();
+                result.put("pluginKey", "didGeoFencesStatusChangedForRegion");
+                result.put("customId", customId);
+                result.put("fenceStatus", status);
+                if (null != fence) {
+                  AMapLocation location = fence.getCurrentLocation();
+                  if (null != location) {
+                    result.put("longitude", location.getLongitude());
+                    result.put("latitude", location.getLatitude());
+                  }
+                  fence.getCurrentLocation().getLatitude();
+                }
+                mEventSink.success(result);
+              }
+            }
+          };
+          IntentFilter filter = new IntentFilter(
+                  ConnectivityManager.CONNECTIVITY_ACTION);
+          filter.addAction(GEOFENCE_BROADCAST_ACTION);
+          mContext.registerReceiver(mGeoFenceReceiver, filter);
+        }
+        mGeoFenceClient.addGeoFence(points, (String)arguments.get("customID"));
+        break;
+      case "removeGeoFenceRegionsWithCustomID":
+        if (null != mGeoFenceClient) {
+          mGeoFenceClient.removeGeoFence();
+        }
+        result.success(true);
         break;
       default:
         result.notImplemented();

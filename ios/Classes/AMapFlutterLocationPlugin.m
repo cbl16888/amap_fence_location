@@ -441,11 +441,13 @@
         //        NSLog(@"创建失败 %@",error);
         if (nil != self.addResult) {
             self.addResult(@(NO));
+            self.addResult = nil;
         }
     } else {
         //        NSLog(@"创建成功");
         if (nil != self.addResult) {
             self.addResult(@(YES));
+            self.addResult = nil;
         }
     }
 }
