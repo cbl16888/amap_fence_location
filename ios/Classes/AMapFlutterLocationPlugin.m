@@ -24,12 +24,26 @@
 
 @end
 
-@interface AMapFlutterLocationPlugin()<AMapLocationManagerDelegate>
+@interface AMapFlutterLocationPlugin()<AMapLocationManagerDelegate, AMapGeoFenceManagerDelegate>
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AMapFlutterLocationManager*> *pluginsDict;
+@property (nonatomic, strong) AMapGeoFenceManager *geoFenceManager;
+@property (nonatomic, copy) FlutterResult addResult;
+
 
 @end
 
 @implementation AMapFlutterLocationPlugin
+
+- (AMapGeoFenceManager *)geoFenceManager {
+    if (nil == _geoFenceManager) {
+        _geoFenceManager = [[AMapGeoFenceManager alloc] init];
+        _geoFenceManager.delegate = self;
+        _geoFenceManager.activeAction = AMapGeoFenceActiveActionInside | AMapGeoFenceActiveActionOutside; //设置希望侦测的围栏触发行为，默认是侦测用户进入围栏的行为，即AMapGeoFenceActiveActionInside，这边设置为进入，离开，停留（在围栏内10分钟以上），都触发回调
+        _geoFenceManager.allowsBackgroundLocationUpdates = YES;  //允许后台定位
+    }
+    return _geoFenceManager;
+}
+
 
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     FlutterMethodChannel* channel = [FlutterMethodChannel
@@ -41,7 +55,7 @@
     //AMapFlutterStreamHandler * streamHandler = [[AMapFlutterStreamHandler alloc] init];
     FlutterEventChannel *eventChanel = [FlutterEventChannel eventChannelWithName:@"amap_flutter_location_stream" binaryMessenger:[registrar messenger]];
     [eventChanel setStreamHandler:[[AMapFlutterStreamManager sharedInstance] streamHandler]];
-        
+    
 }
 
 - (instancetype)init {
@@ -71,9 +85,29 @@
         }else {
             result(@NO);
         }
-    }else if ([@"getSystemAccuracyAuthorization" isEqualToString:call.method]) {
+    } else if ([@"getSystemAccuracyAuthorization" isEqualToString:call.method]) {
         [self getSystemAccuracyAuthorization:call result:result];
-    }else {
+    } else if ([@"addPolygonRegionForMonitoringWithCoordinates" isEqualToString:call.method]) {
+        NSArray *coordinates = call.arguments[@"coordinates"];
+        CLLocationCoordinate2D *coorArr = malloc(sizeof(CLLocationCoordinate2D) * coordinates.count);
+        for (int i = 0; i < coordinates.count; i++){
+            NSArray *locations = [coordinates[i] componentsSeparatedByString:@","];
+            coorArr[i] = CLLocationCoordinate2DMake([locations[0] doubleValue], [locations[1] doubleValue]);
+        }
+        NSString *customID = call.arguments[@"customID"];
+        self.addResult = result;
+        [self.geoFenceManager addPolygonRegionForMonitoringWithCoordinates:coorArr count:coordinates.count customID:customID];
+        free(coorArr);
+        coorArr = NULL;
+    } else if ([@"removeGeoFenceRegionsWithCustomID" isEqualToString:call.method]) {
+        NSString *customID = call.arguments[@"customID"];
+        if (customID.length > 0) {
+            [self.geoFenceManager removeGeoFenceRegionsWithCustomID:customID];
+        } else {
+            [self.geoFenceManager removeAllGeoFenceRegions];
+        }
+        result(@YES);
+    } else {
         result(FlutterMethodNotImplemented);
     }
 }
@@ -98,7 +132,7 @@
     if (!manager) {
         return;
     }
-
+    
     if (manager.onceLocation) {
         [manager requestLocationWithReGeocode:manager.locatingWithReGeocode completionBlock:^(CLLocation *location, AMapLocationReGeocode *regeocode, NSError *error) {
             [self handlePlugin:manager.pluginKey location:location reGeocode:regeocode error:error];
@@ -115,7 +149,7 @@
     if (!manager) {
         return;
     }
-
+    
     [manager setFlutterResult:nil];
     [[self locManagerWithCall:call] stopUpdatingLocation];
 }
@@ -131,7 +165,7 @@
     if (needAddress) {
         [manager setLocatingWithReGeocode:[needAddress boolValue]];
     }
-        
+    
     NSNumber *geoLanguage = call.arguments[@"geoLanguage"];
     if (geoLanguage) {
         if ([geoLanguage integerValue] == 0) {
@@ -142,12 +176,12 @@
             [manager setReGeocodeLanguage:AMapLocationReGeocodeLanguageEnglish];
         }
     }
-
+    
     NSNumber *onceLocation = call.arguments[@"onceLocation"];
     if (onceLocation) {
         manager.onceLocation = [onceLocation boolValue];
     }
-
+    
     NSNumber *pausesLocationUpdatesAutomatically = call.arguments[@"pausesLocationUpdatesAutomatically"];
     if (pausesLocationUpdatesAutomatically) {
         [manager setPausesLocationUpdatesAutomatically:[pausesLocationUpdatesAutomatically boolValue]];
@@ -262,7 +296,7 @@
             if (reGeocode.citycode) {
                 [dic setValue:reGeocode.citycode forKey:@"cityCode"];
             }
-
+            
             if (reGeocode.adcode) {
                 [dic setValue:reGeocode.adcode forKey:@"adCode"];
             }
@@ -270,7 +304,7 @@
             if (reGeocode.description) {
                 [dic setValue:reGeocode.formattedAddress forKey:@"description"];
             }
-                        
+            
             if (reGeocode.formattedAddress.length) {
                 [dic setObject:reGeocode.formattedAddress forKey:@"address"];
             }
@@ -301,7 +335,7 @@
     
     AMapFlutterLocationManager *manager = nil;
     @synchronized (self) {
-            manager = [_pluginsDict objectForKey:pluginKey];
+        manager = [_pluginsDict objectForKey:pluginKey];
     }
     
     if (!manager) {
@@ -343,7 +377,7 @@
                             if (completion) {
                                 completion(error);
                             }
-                   
+                            
                         }];
                     } else {
                         NSLog(@"[AMapLocationKit] 要在iOS 14及以上版本使用精确定位, 在amap_location_option.dart 中配置的fullAccuracyPurposeKey的key不包含在infoPlist中,请检查配置的key是否正确");
@@ -351,7 +385,7 @@
                 } else {
                     NSLog(@"[AMapLocationKit] 要在iOS 14及以上版本使用精确定位, 需要在Info.plist中添加NSLocationTemporaryUsageDescriptionDictionary字典，且自定义Key描述精确定位的使用场景。");
                 }
-        
+                
             } else {
                 NSLog(@"[AMapLocationKit] 要在iOS 14及以上版本使用精确定位, 需要在amap_location_option.dart 中配置对应场景下fullAccuracyPurposeKey的key。注意：这个key要和infoPlist中的配置一样");
             }
@@ -362,7 +396,7 @@
 
 /**
  *  @brief 当plist配置NSLocationAlwaysUsageDescription或者NSLocationAlwaysAndWhenInUseUsageDescription，并且[CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined，会调用代理的此方法。
-     此方法实现调用申请后台权限API即可：[locationManager requestAlwaysAuthorization](必须调用,不然无法正常获取定位权限)
+ 此方法实现调用申请后台权限API即可：[locationManager requestAlwaysAuthorization](必须调用,不然无法正常获取定位权限)
  *  @param manager 定位 AMapLocationManager 类。
  *  @param locationManager  需要申请后台定位权限的locationManager。
  *  @since 2.6.2
@@ -372,7 +406,7 @@
     [locationManager requestWhenInUseAuthorization];
 }
 
- /**
+/**
  *  @brief 当定位发生错误时，会调用代理的此方法。
  *  @param manager 定位 AMapLocationManager 类。
  *  @param error 返回的错误，参考 CLError 。
@@ -400,6 +434,41 @@
     [formatter setDateFormat:@"YYYY-MM-dd HH:mm:ss"];
     NSString *timeString = [formatter stringFromDate:date];
     return timeString;
+}
+
+- (void)amapGeoFenceManager:(AMapGeoFenceManager *)manager didAddRegionForMonitoringFinished:(NSArray<AMapGeoFenceRegion *> *)regions customID:(NSString *)customID error:(NSError *)error {
+    if (error) {
+        //        NSLog(@"创建失败 %@",error);
+        if (nil != self.addResult) {
+            self.addResult(@(NO));
+        }
+    } else {
+        //        NSLog(@"创建成功");
+        if (nil != self.addResult) {
+            self.addResult(@(YES));
+        }
+    }
+}
+
+- (void)amapGeoFenceManager:(AMapGeoFenceManager *)manager didGeoFencesStatusChangedForRegion:(AMapGeoFenceRegion *)region customID:(NSString *)customID error:(NSError *)error {
+    if (![[AMapFlutterStreamManager sharedInstance] streamHandler].eventSink) {
+        return;
+    }
+    NSMutableDictionary *dic = [NSMutableDictionary dictionaryWithCapacity:1];
+    [dic setObject:@"didGeoFencesStatusChangedForRegion" forKey:@"pluginKey"];
+    
+    if (nil == error) {
+        [dic setValue:customID forKey:@"customID"];
+        [dic setValue:@(region.fenceStatus) forKey:@"fenceStatus"];
+        if (nil != region.currentLocation) {
+            [dic setValue:@(region.currentLocation.coordinate.longitude) forKey:@"longitude"];
+            [dic setValue:@(region.currentLocation.coordinate.latitude) forKey:@"latitude"];
+        }
+    } else {
+        [dic setObject:[NSNumber numberWithInteger:error.code]  forKey:@"errorCode"];
+        [dic setObject:error.description forKey:@"errorInfo"];
+    }
+    [[AMapFlutterStreamManager sharedInstance] streamHandler].eventSink(dic);
 }
 
 @end

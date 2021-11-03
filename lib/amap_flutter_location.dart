@@ -137,9 +137,21 @@ class AMapFlutterLocation {
           Map<String, Object> newEvent = Map<String, Object>.of(event);
           newEvent.remove('pluginKey');
           _receiveStream?.add(newEvent);
+        } else if (event['pluginKey'] == "didGeoFencesStatusChangedForRegion") {
+          Map<String, Object> newEvent = Map<String, Object>.of(event);
+          _receiveStream?.add(newEvent);
         }
       });
     }
     return _receiveStream!.stream;
+  }
+
+  Future<bool> addPolygonRegionForMonitoringWithCoordinates(List<String>coordinates, String customID) async {
+    return await _methodChannel.invokeMethod('addPolygonRegionForMonitoringWithCoordinates', {'coordinates': coordinates, 'customID': customID});
+  }
+
+  // 移除电子围栏,customID为空时,移除所有电子围栏
+  Future<bool> removeGeoFenceRegionsWithCustomID(String? customID) async {
+    return await _methodChannel.invokeMethod('removeGeoFenceRegionsWithCustomID', {'customID': customID ?? ""});
   }
 }

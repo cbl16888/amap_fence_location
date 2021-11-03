@@ -41,9 +41,13 @@ class _MyAppState extends State<MyApp> {
 
     ///注册定位结果监听
     _locationListener = _locationPlugin.onLocationChanged().listen((Map<String, Object> result) {
-      setState(() {
-        _locationResult = result;
-      });
+      if (null == result["pluginKey"]) {
+        setState(() {
+          _locationResult = result;
+        });
+      } else {
+        print("围栏: $result");
+      }
     });
   }
 
@@ -117,6 +121,14 @@ class _MyAppState extends State<MyApp> {
   void _stopLocation() {
     _locationPlugin.stopLocation();
   }
+  
+  void _addFence() {
+    _locationPlugin.addPolygonRegionForMonitoringWithCoordinates(["24.52,117.95", "24.51,117.94", "24.53,117.96", "24.50,117.95"], "zhonglingyi");
+  }
+
+  void _removeFence() {
+    _locationPlugin.removeGeoFenceRegionsWithCustomID(null);
+  }
 
   Container _createButtonContainer() {
     return new Container(
@@ -133,10 +145,28 @@ class _MyAppState extends State<MyApp> {
                 foregroundColor: MaterialStateProperty.all(Colors.white),
               ),
             ),
-            new Container(width: 20.0),
+            new Container(width: 10.0),
             new ElevatedButton(
               onPressed: _stopLocation,
               child: new Text('停止定位'),
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.blue),
+                foregroundColor: MaterialStateProperty.all(Colors.white),
+              ),
+            ),
+            new Container(width: 10.0),
+            new ElevatedButton(
+              onPressed: _addFence,
+              child: new Text('创建围栏'),
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.blue),
+                foregroundColor: MaterialStateProperty.all(Colors.white),
+              ),
+            ),
+            new Container(width: 10.0),
+            new ElevatedButton(
+              onPressed: _removeFence,
+              child: new Text('移除围栏'),
               style: ButtonStyle(
                 backgroundColor: MaterialStateProperty.all(Colors.blue),
                 foregroundColor: MaterialStateProperty.all(Colors.white),
