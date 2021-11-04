@@ -145,6 +145,19 @@ public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandl
         }
         mGeoFenceClient.addGeoFence(points, (String)arguments.get("customID"));
         break;
+      case "updatePrivacyShow":
+        Map callArguments = (Map)call.arguments;
+        boolean isContains = (int)callArguments.get("isContains") == 1;
+        boolean isShow = (int)callArguments.get("isShow") == 1;
+        AMapLocationClient.updatePrivacyShow(mContext,isContains,isShow);
+        result.success(true);
+        break;
+      case "updatePrivacyAgree":
+        Map agreeArguments = (Map)call.arguments;
+        boolean isAgree = (int)agreeArguments.get("isAgree") == 1;
+        AMapLocationClient.updatePrivacyAgree(mContext,isAgree);
+        result.success(true);
+        break;
       case "removeGeoFenceRegionsWithCustomID":
         if (null != mGeoFenceClient) {
           mGeoFenceClient.removeGeoFence();
@@ -214,7 +227,7 @@ public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandl
     if (null != apiKeyMap) {
       if (apiKeyMap.containsKey("android")
               && !TextUtils.isEmpty((String) apiKeyMap.get("android"))) {
-        AMapLocationClient.setApiKey((String) apiKeyMap.get("android"));
+//        AMapLocationClient.setApiKey((String) apiKeyMap.get("android"));
       }
     }
   }

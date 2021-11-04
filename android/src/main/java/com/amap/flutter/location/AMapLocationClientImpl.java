@@ -31,7 +31,10 @@ public class AMapLocationClientImpl implements AMapLocationListener {
         mPluginKey = pluginKey;
         mEventSink = eventSink;
         if(null == locationClient) {
-            locationClient = new AMapLocationClient(context);
+            try {
+                locationClient = new AMapLocationClient(mContext);
+            } catch (Exception e){
+            }
         }
     }
 
@@ -40,7 +43,10 @@ public class AMapLocationClientImpl implements AMapLocationListener {
      */
     public void startLocation() {
         if (null == locationClient) {
-            locationClient = new AMapLocationClient(mContext);
+            try {
+                locationClient = new AMapLocationClient(mContext);
+            } catch (Exception e){
+            }
         }
         if (null != locationOption) {
             locationClient.setLocationOption(locationOption);

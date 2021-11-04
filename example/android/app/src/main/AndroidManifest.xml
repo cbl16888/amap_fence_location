@@ -52,5 +52,8 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="1dbf56e2e8a4d0e4cdc2df9efd36bc71"/>
     </application>
 </manifest>
