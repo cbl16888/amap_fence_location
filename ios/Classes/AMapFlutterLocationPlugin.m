@@ -107,6 +107,15 @@
             [self.geoFenceManager removeAllGeoFenceRegions];
         }
         result(@YES);
+    } else if ([@"updatePrivacyShow" isEqualToString:call.method]) {
+        NSInteger isContains = [call.arguments[@"isContains"] integerValue];
+        NSInteger isShow = [call.arguments[@"isShow"] integerValue];
+        [AMapLocationManager updatePrivacyShow:isShow privacyInfo:isContains];
+        result(@YES);
+    } else if ([@"updatePrivacyAgree" isEqualToString:call.method]) {
+        NSInteger isAgree = [call.arguments[@"isAgree"] integerValue];
+        [AMapLocationManager updatePrivacyAgree:isAgree];
+        result(@YES);
     } else {
         result(FlutterMethodNotImplemented);
     }

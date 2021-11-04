@@ -154,4 +154,12 @@ class AMapFlutterLocation {
   Future<bool> removeGeoFenceRegionsWithCustomID(String? customID) async {
     return await _methodChannel.invokeMethod('removeGeoFenceRegionsWithCustomID', {'customID': customID ?? ""});
   }
+
+  Future<bool> updatePrivacyShow(int isContains, int isShow) async {
+    return await _methodChannel.invokeMethod('updatePrivacyShow', {'isContains': isContains, "isShow": isShow});
+  }
+
+  Future<bool> updatePrivacyAgree(int isAgree) async {
+    return await _methodChannel.invokeMethod('updatePrivacyAgree', {'isAgree': isAgree});
+  }
 }
