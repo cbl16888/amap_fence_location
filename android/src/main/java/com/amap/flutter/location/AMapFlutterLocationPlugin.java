@@ -124,7 +124,9 @@ public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandl
                 }
                 Map<String, Object> result = new LinkedHashMap<String, Object>();
                 result.put("pluginKey", "didGeoFencesStatusChangedForRegion");
-                result.put("customId", customId);
+                if (null != customId) {
+                  result.put("customId", customId);
+                }
                 result.put("fenceStatus", status);
                 if (null != fence) {
                   AMapLocation location = fence.getCurrentLocation();
